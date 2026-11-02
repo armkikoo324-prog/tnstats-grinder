@@ -158,7 +158,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
                 // Regular Grinding Click ("Banger Song")
                 const elements = document.querySelectorAll('div, button');
                 for (let el of elements) {
-                    if (el.offsetParent !== null && el.textContent.trim().startsWith('Banger Song')) {
+                    if (el.offsetParent !== null && el.textContent.trim().startsWith('Music Video')) {
                         el.click();
                         console.log("Clicked: Banger Song");
                         break;
