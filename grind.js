@@ -17,62 +17,37 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     const channelName = process.env.CHANNEL_NAME || 'UltimateTrioTitans';
     const channelPassword = process.env.CHANNEL_PASSWORD || 'UltimateTrioTitansOfficialChannel';
 
-    // Navigate to the site
     await page.goto('https://grinding.tnstats.dev', { waitUntil: 'networkidle2' });
     console.log("Connected to https://grinding.tnstats.dev!");
 
-    await sleep(2000);
+    await sleep(2500);
 
-    // 1. Enter Channel Name if prompted or change channel option
-    await page.evaluate((chName) => {
+    // 1. Enter Channel Name, Password, Solve Math Check, and Click Log In
+    await page.evaluate((chName, pwd) => {
         const inputs = document.querySelectorAll('input');
-        for (let inp of inputs) {
-            const ph = (inp.placeholder || '').toLowerCase();
-            if (ph.includes('channel') || ph.includes('name')) {
-                inp.value = chName;
-                inp.dispatchEvent(new Event('input', { bubbles: true }));
-                inp.dispatchEvent(new Event('change', { bubbles: true }));
-                console.log("Entered channel name.");
-                break;
-            }
-        }
-    }, channelName);
+        let passInput = null;
+        let ansInput = null;
 
-    await sleep(1000);
-
-    // 2. Enter Channel Password if password input exists
-    await page.evaluate((pwd) => {
-        const inputs = document.querySelectorAll('input');
         for (let inp of inputs) {
             const ph = (inp.placeholder || '').toLowerCase();
             const type = (inp.type || '').toLowerCase();
             if (ph.includes('password') || type === 'password') {
-                inp.value = pwd;
-                inp.dispatchEvent(new Event('input', { bubbles: true }));
-                inp.dispatchEvent(new Event('change', { bubbles: true }));
-                console.log("Entered channel password.");
-                break;
+                passInput = inp;
             }
-        }
-    }, channelPassword);
-
-    await sleep(1000);
-
-    // 3. Solve initial login math check & click Log In
-    await page.evaluate(() => {
-        const inputs = document.querySelectorAll('input');
-        let answerInput = null;
-
-        for (let inp of inputs) {
-            const ph = (inp.placeholder || '').toLowerCase();
             if (ph.includes('answer') || ph.includes('your answer')) {
-                answerInput = inp;
-                break;
+                ansInput = inp;
             }
         }
 
-        if (answerInput) {
-            let container = answerInput.parentElement;
+        if (passInput && pwd) {
+            passInput.value = pwd;
+            passInput.dispatchEvent(new Event('input', { bubbles: true }));
+            passInput.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log("Entered channel password.");
+        }
+
+        if (ansInput) {
+            let container = ansInput.parentElement;
             let questionText = '';
             while (container && container !== document.body) {
                 const txt = container.textContent || '';
@@ -96,9 +71,9 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
                     else if (op === '*') result = num1 * num2;
                     else if (op === '/') result = num1 / num2;
 
-                    answerInput.value = result;
-                    answerInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    answerInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    ansInput.value = result;
+                    ansInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    ansInput.dispatchEvent(new Event('change', { bubbles: true }));
                     console.log(`Solved login check: ${num1} ${op} ${num2} = ${result}`);
                 }
             }
@@ -113,18 +88,19 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
                 break;
             }
         }
-    });
+    }, channelName, channelPassword);
 
-    await sleep(3000); // Wait for dashboard to load
+    // Wait for dashboard to load after login
+    await sleep(4000);
 
-    // 4. Main Grinding Loop (3 minutes)
+    // 2. Main Grinding Loop (3 minutes)
     const RUN_TIME = 3 * 60 * 1000;
     const startTime = Date.now();
 
     while (Date.now() - startTime < RUN_TIME) {
         try {
             await page.evaluate(() => {
-                // Solve mid-grind popup captcha if present
+                // Solve mid-grind captcha if present
                 const inputs = document.querySelectorAll('input');
                 let targetInput = null;
                 for (let inp of inputs) {
