@@ -195,7 +195,7 @@
     function clickMainButton() {
         const elements = document.querySelectorAll('div, button');
         for (let el of elements) {
-            if (el.offsetParent !== null && el.textContent.trim().startsWith('Banger Song')) {
+            if (el.offsetParent !== null && el.textContent.trim().startsWith('Music Video')) {
                 fireClick(el);
                 return true;
             }
