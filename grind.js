@@ -1,6 +1,5 @@
 const puppeteer = require('puppeteer');
 
-// Helper delay function
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 (async () => {
@@ -11,30 +10,127 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     });
 
     const page = await browser.newPage();
-    
-    // Set a realistic user agent
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    // Forward browser console logs to GitHub Actions output
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
+    const channelName = process.env.CHANNEL_NAME || 'UltimateTrioTitans';
+    const channelPassword = process.env.CHANNEL_PASSWORD || 'UltimateTrioTitansOfficialChannel';
+
+    // Navigate to the site
     await page.goto('https://grinding.tnstats.dev', { waitUntil: 'networkidle2' });
     console.log("Connected to https://grinding.tnstats.dev!");
 
-    // Run for 3 to 10 minutes per GitHub Action execution (set to 3 minutes here for faster feedback loops)
+    await sleep(2000);
+
+    // 1. Enter Channel Name if prompted or change channel option
+    await page.evaluate((chName) => {
+        const inputs = document.querySelectorAll('input');
+        for (let inp of inputs) {
+            const ph = (inp.placeholder || '').toLowerCase();
+            if (ph.includes('channel') || ph.includes('name')) {
+                inp.value = chName;
+                inp.dispatchEvent(new Event('input', { bubbles: true }));
+                inp.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log("Entered channel name.");
+                break;
+            }
+        }
+    }, channelName);
+
+    await sleep(1000);
+
+    // 2. Enter Channel Password if password input exists
+    await page.evaluate((pwd) => {
+        const inputs = document.querySelectorAll('input');
+        for (let inp of inputs) {
+            const ph = (inp.placeholder || '').toLowerCase();
+            const type = (inp.type || '').toLowerCase();
+            if (ph.includes('password') || type === 'password') {
+                inp.value = pwd;
+                inp.dispatchEvent(new Event('input', { bubbles: true }));
+                inp.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log("Entered channel password.");
+                break;
+            }
+        }
+    }, channelPassword);
+
+    await sleep(1000);
+
+    // 3. Solve initial login math check & click Log In
+    await page.evaluate(() => {
+        const inputs = document.querySelectorAll('input');
+        let answerInput = null;
+
+        for (let inp of inputs) {
+            const ph = (inp.placeholder || '').toLowerCase();
+            if (ph.includes('answer') || ph.includes('your answer')) {
+                answerInput = inp;
+                break;
+            }
+        }
+
+        if (answerInput) {
+            let container = answerInput.parentElement;
+            let questionText = '';
+            while (container && container !== document.body) {
+                const txt = container.textContent || '';
+                if (txt.includes('Quick check')) {
+                    questionText = txt;
+                    break;
+                }
+                container = container.parentElement;
+            }
+
+            if (questionText) {
+                const match = questionText.match(/(-?\d+)\s*([+\-*/–—])\s*(-?\d+)/);
+                if (match) {
+                    const num1 = parseInt(match[1], 10);
+                    const op = match[2];
+                    const num2 = parseInt(match[3], 10);
+                    let result = 0;
+
+                    if (op === '+') result = num1 + num2;
+                    else if (op === '-' || op === '–' || op === '—') result = num1 - num2;
+                    else if (op === '*') result = num1 * num2;
+                    else if (op === '/') result = num1 / num2;
+
+                    answerInput.value = result;
+                    answerInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    answerInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    console.log(`Solved login check: ${num1} ${op} ${num2} = ${result}`);
+                }
+            }
+        }
+
+        // Click Log In button
+        const buttons = document.querySelectorAll('button, a, div');
+        for (let btn of buttons) {
+            if (btn.offsetParent !== null && btn.textContent.trim().toLowerCase().includes('log in')) {
+                btn.click();
+                console.log("Clicked Log In button.");
+                break;
+            }
+        }
+    });
+
+    await sleep(3000); // Wait for dashboard to load
+
+    // 4. Main Grinding Loop (3 minutes)
     const RUN_TIME = 3 * 60 * 1000;
     const startTime = Date.now();
 
     while (Date.now() - startTime < RUN_TIME) {
         try {
             await page.evaluate(() => {
-                // 1. Check and solve math captcha if present
+                // Solve mid-grind popup captcha if present
                 const inputs = document.querySelectorAll('input');
                 let targetInput = null;
                 for (let inp of inputs) {
                     const ph = (inp.placeholder || '').toLowerCase();
                     const rect = inp.getBoundingClientRect();
-                    if (rect.top > 300 && inp.offsetParent !== null && !ph.includes('display')) {
+                    if (rect.top > 300 && inp.offsetParent !== null && !ph.includes('display') && !ph.includes('password')) {
                         targetInput = inp;
                         break;
                     }
@@ -69,27 +165,24 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
                                 targetInput.value = result;
                                 targetInput.dispatchEvent(new Event('input', { bubbles: true }));
                                 targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log(`Solved Captcha: ${num1} ${op} ${num2} = ${result}`);
                             }
 
-                            // Find and click verify button
                             const candidates = captchaBox.querySelectorAll('*');
                             for (let el of candidates) {
                                 if (el.textContent && el.textContent.trim().includes('Verify')) {
                                     el.click();
-                                    console.log("Clicked Verify button.");
                                     break;
                                 }
                             }
-                            return; 
+                            return;
                         }
                     }
                 }
 
-                // 2. Regular Grinding Click ("Banger Song")
+                // Regular Grinding Click ("Banger Song")
                 const elements = document.querySelectorAll('div, button');
                 for (let el of elements) {
-                    if (el.offsetParent !== null && el.textContent.trim().startsWith('Music Video')) {
+                    if (el.offsetParent !== null && el.textContent.trim().startsWith('Banger Song')) {
                         el.click();
                         console.log("Clicked: Banger Song");
                         break;
@@ -100,7 +193,6 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             console.log("Loop execution note:", err.message);
         }
 
-        // Wait 900ms between actions
         await sleep(900);
     }
 

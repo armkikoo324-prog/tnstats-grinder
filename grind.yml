@@ -2,8 +2,8 @@ name: TNStats Auto Grinder Cloud Runner
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # Automatically triggers every 15 minutes
-  workflow_dispatch: # Enables manual trigger from the GitHub Actions web interface
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 jobs:
   run-grinder:
@@ -21,4 +21,7 @@ jobs:
         run: npm install
 
       - name: Execute Puppeteer script
+        env:
+          CHANNEL_NAME: ${{ secrets.CHANNEL_NAME }}
+          CHANNEL_PASSWORD: ${{ secrets.CHANNEL_PASSWORD }}
         run: node grind.js
