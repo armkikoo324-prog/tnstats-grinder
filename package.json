@@ -1,0 +1,24 @@
+{
+  "name": "tnstats-grinder",
+  "version": "1.0.0",
+  "description": "> **armkikoo324-prog/tnstats-grinder**: The powerful script that automatically grinds when you're not at home and leave while you're at work or school.",
+  "main": "grind-automation.user.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/armkikoo324-prog/tnstats-grinder.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/armkikoo324-prog/tnstats-grinder/issues"
+  },
+  "homepage": "https://github.com/armkikoo324-prog/tnstats-grinder#readme",
+  "dependencies": {
+    "puppeteer": "^25.16.0"
+  }
+}
