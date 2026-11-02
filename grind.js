@@ -1,5 +1,8 @@
 const puppeteer = require('puppeteer');
 
+// Helper delay function
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 (async () => {
     console.log("Launching headless browser on GitHub Actions...");
     const browser = await puppeteer.launch({
@@ -9,24 +12,20 @@ const puppeteer = require('puppeteer');
 
     const page = await browser.newPage();
     
-    // Set a realistic user agent so the site doesn't flag the cloud runner
+    // Set a realistic user agent
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    // Forward browser console logs to GitHub Actions output
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
     await page.goto('https://grinding.tnstats.dev', { waitUntil: 'networkidle2' });
     console.log("Connected to https://grinding.tnstats.dev!");
 
-    // Run for 10 minutes per GitHub Action execution
-    const RUN_TIME = 10 * 60 * 1000;
+    // Run for 3 to 10 minutes per GitHub Action execution (set to 3 minutes here for faster feedback loops)
+    const RUN_TIME = 3 * 60 * 1000;
     const startTime = Date.now();
 
-    const interval = setInterval(async () => {
-        if (Date.now() - startTime > RUN_TIME) {
-            console.log("Run time limit reached. Closing browser.");
-            clearInterval(interval);
-            await browser.close();
-            process.exit(0);
-        }
-
+    while (Date.now() - startTime < RUN_TIME) {
         try {
             await page.evaluate(() => {
                 // 1. Check and solve math captcha if present
@@ -70,6 +69,7 @@ const puppeteer = require('puppeteer');
                                 targetInput.value = result;
                                 targetInput.dispatchEvent(new Event('input', { bubbles: true }));
                                 targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                console.log(`Solved Captcha: ${num1} ${op} ${num2} = ${result}`);
                             }
 
                             // Find and click verify button
@@ -77,10 +77,11 @@ const puppeteer = require('puppeteer');
                             for (let el of candidates) {
                                 if (el.textContent && el.textContent.trim().includes('Verify')) {
                                     el.click();
+                                    console.log("Clicked Verify button.");
                                     break;
                                 }
                             }
-                            return; // Skip grinding click if solving captcha
+                            return; 
                         }
                     }
                 }
@@ -88,8 +89,9 @@ const puppeteer = require('puppeteer');
                 // 2. Regular Grinding Click ("Banger Song")
                 const elements = document.querySelectorAll('div, button');
                 for (let el of elements) {
-                    if (el.offsetParent !== null && el.textContent.trim().startsWith('Banger Song')) {
+                    if (el.offsetParent !== null && el.textContent.trim().startsWith('Music Video')) {
                         el.click();
+                        console.log("Clicked: Banger Song");
                         break;
                     }
                 }
@@ -97,5 +99,12 @@ const puppeteer = require('puppeteer');
         } catch (err) {
             console.log("Loop execution note:", err.message);
         }
-    }, 900); // 0.9 second interval
+
+        // Wait 900ms between actions
+        await sleep(900);
+    }
+
+    console.log("Run time limit reached. Closing browser.");
+    await browser.close();
+    process.exit(0);
 })();
