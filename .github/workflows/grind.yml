@@ -1,0 +1,24 @@
+name: TNStats Auto Grinder Cloud Runner
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # Automatically triggers every 15 minutes
+  workflow_dispatch: # Enables manual trigger from the GitHub Actions web interface
+
+jobs:
+  run-grinder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Execute Puppeteer script
+        run: node grind.js
